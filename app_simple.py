@@ -158,7 +158,7 @@ async def mcp_initialize():
         },
         "serverInfo": {
             "name": "vulngpt-mcp-server",
-            "version": "1.0.0"
+            "version": "1.0.1"
         }
     }
 
