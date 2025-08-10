@@ -145,21 +145,46 @@ async def validate_token(token: str = Depends(authenticate_token)):
 
 # MCP protocol endpoints (JSON-RPC 2.0 over HTTP)
 @app.post("/")
-async def mcp_jsonrpc(request_data: dict, request: Request):
+async def mcp_jsonrpc(request: Request):
     """Main MCP endpoint using JSON-RPC 2.0 protocol"""
-    method = request_data.get("method")
-    params = request_data.get("params", {})
-    request_id = request_data.get("id", 1)
-    
-    # Get authorization header for authentication
-    auth_header = request.headers.get("authorization", "")
-    token = None
-    if auth_header.startswith("Bearer "):
-        token = auth_header[7:]
-    
     try:
+        # Log the raw request for debugging
+        body = await request.body()
+        logger.info(f"Received request body: {body}")
+        logger.info(f"Request headers: {dict(request.headers)}")
+        
+        # Parse JSON
+        try:
+            request_data = await request.json()
+            logger.info(f"Parsed JSON: {request_data}")
+        except Exception as json_error:
+            logger.error(f"JSON parsing error: {json_error}")
+            return JSONResponse(
+                status_code=400,
+                content={
+                    "jsonrpc": "2.0",
+                    "id": None,
+                    "error": {
+                        "code": -32700,
+                        "message": "Parse error"
+                    }
+                }
+            )
+        
+        method = request_data.get("method")
+        params = request_data.get("params", {})
+        request_id = request_data.get("id", 1)
+        
+        # Get authorization header for authentication
+        auth_header = request.headers.get("authorization", "")
+        token = None
+        if auth_header.startswith("Bearer "):
+            token = auth_header[7:]
+        
+        logger.info(f"Method: {method}, Params: {params}, Token: {token}")
+        
         if method == "initialize":
-            return {
+            result = {
                 "jsonrpc": "2.0",
                 "id": request_id,
                 "result": {
@@ -175,8 +200,11 @@ async def mcp_jsonrpc(request_data: dict, request: Request):
                     }
                 }
             }
+            logger.info(f"Returning initialize result: {result}")
+            return result
+            
         elif method == "tools/list":
-            return {
+            result = {
                 "jsonrpc": "2.0",
                 "id": request_id,
                 "result": {
@@ -193,12 +221,15 @@ async def mcp_jsonrpc(request_data: dict, request: Request):
                     ]
                 }
             }
+            logger.info(f"Returning tools/list result: {result}")
+            return result
+            
         elif method == "tools/call":
             tool_name = params.get("name")
             if tool_name == "validate":
                 # Get the phone number for the authenticated user
                 phone_number = USER_DATABASE.get(token) if token and token in USER_DATABASE else "917305041960"
-                return {
+                result = {
                     "jsonrpc": "2.0", 
                     "id": request_id,
                     "result": {
@@ -210,8 +241,10 @@ async def mcp_jsonrpc(request_data: dict, request: Request):
                         ]
                     }
                 }
+                logger.info(f"Returning tools/call validate result: {result}")
+                return result
             else:
-                return {
+                error_result = {
                     "jsonrpc": "2.0",
                     "id": request_id,
                     "error": {
@@ -219,8 +252,10 @@ async def mcp_jsonrpc(request_data: dict, request: Request):
                         "message": f"Unknown tool: {tool_name}"
                     }
                 }
+                logger.error(f"Unknown tool requested: {tool_name}")
+                return error_result
         else:
-            return {
+            error_result = {
                 "jsonrpc": "2.0",
                 "id": request_id,
                 "error": {
@@ -228,16 +263,22 @@ async def mcp_jsonrpc(request_data: dict, request: Request):
                     "message": f"Method not found: {method}"
                 }
             }
+            logger.error(f"Unknown method requested: {method}")
+            return error_result
+            
     except Exception as e:
         logger.error(f"JSON-RPC error: {str(e)}")
-        return {
-            "jsonrpc": "2.0",
-            "id": request_id,
-            "error": {
-                "code": -32603,
-                "message": f"Internal error: {str(e)}"
+        return JSONResponse(
+            status_code=500,
+            content={
+                "jsonrpc": "2.0",
+                "id": None,
+                "error": {
+                    "code": -32603,
+                    "message": f"Internal error: {str(e)}"
+                }
             }
-        }
+        )
 
 # Keep the old REST endpoints for backwards compatibility  
 @app.post("/mcp/initialize")
