@@ -1,0 +1,8 @@
+{
+  "language": "python3",
+  "run": "python main.py",
+  "entrypoint": "main.py",
+  "hidden": [".config", "venv"],
+  "interpreter": "python3",
+  "modules": ["fastapi", "uvicorn", "pydantic", "python-multipart", "requests"]
+}
