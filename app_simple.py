@@ -184,6 +184,10 @@ async def mcp_jsonrpc(request: Request):
         logger.info(f"Method: {method}, Params: {params}, Token: {token}")
         
         if method == "initialize":
+            # MCP initialize should accept client info in params
+            client_info = params.get("clientInfo", {})
+            logger.info(f"Initialize called with client info: {client_info}")
+            
             result = {
                 "jsonrpc": "2.0",
                 "id": request_id,
@@ -192,7 +196,10 @@ async def mcp_jsonrpc(request: Request):
                     "capabilities": {
                         "tools": {
                             "listChanged": False
-                        }
+                        },
+                        "resources": {},
+                        "prompts": {},
+                        "logging": {}
                     },
                     "serverInfo": {
                         "name": "vulngpt-mcp-server",
@@ -291,6 +298,16 @@ async def mcp_discovery():
         "protocol": "mcp",
         "protocolVersion": "2024-11-05"
     }
+
+@app.post("/mcp")
+async def mcp_alt_endpoint(request: Request):
+    """Alternative MCP endpoint"""
+    return await mcp_jsonrpc(request)
+
+@app.post("/rpc")
+async def mcp_rpc_endpoint(request: Request):
+    """RPC endpoint"""
+    return await mcp_jsonrpc(request)
 
 @app.post("/sse")
 async def mcp_sse(request: Request):
