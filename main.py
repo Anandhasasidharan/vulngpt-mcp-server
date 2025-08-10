@@ -44,7 +44,7 @@ security = HTTPBearer()
 # Format: {bearer_token: phone_number}
 USER_DATABASE = {
     # Example tokens - replace with your actual tokens
-    "puch_ai_token_123": "919876543210",
+    "puch_ai_token_123": "917305041960",  # Your actual phone number
     "demo_token_456": "918765432109",
     "test_token_789": "917654321098",
 }
