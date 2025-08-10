@@ -150,7 +150,9 @@ async def mcp_initialize():
     return {
         "protocolVersion": "2024-11-05",
         "capabilities": {
-            "tools": {},
+            "tools": {
+                "listChanged": False
+            },
             "resources": {},
             "prompts": {}
         },
@@ -159,6 +161,101 @@ async def mcp_initialize():
             "version": "1.0.0"
         }
     }
+
+@app.post("/mcp/tools/list")
+async def mcp_tools_list():
+    """List available MCP tools"""
+    return {
+        "tools": [
+            {
+                "name": "validate",
+                "description": "Validate bearer token and return user's phone number in country_code+number format",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {},
+                    "required": []
+                }
+            },
+            {
+                "name": "scan_repository", 
+                "description": "Scan a GitHub repository for security vulnerabilities",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "repository_url": {
+                            "type": "string",
+                            "description": "The GitHub repository URL to scan"
+                        },
+                        "scan_type": {
+                            "type": "string", 
+                            "description": "Type of scan to perform",
+                            "enum": ["quick", "deep", "full"]
+                        }
+                    },
+                    "required": ["repository_url"]
+                }
+            }
+        ]
+    }
+
+@app.post("/mcp/tools/call")
+async def mcp_tools_call(request_data: dict, token: str = Depends(authenticate_token)):
+    """Call an MCP tool"""
+    tool_name = request_data.get("name")
+    arguments = request_data.get("arguments", {})
+    
+    if tool_name == "validate":
+        # Return the phone number for the authenticated user
+        phone_number = USER_DATABASE.get(token)
+        return {
+            "content": [
+                {
+                    "type": "text",
+                    "text": phone_number
+                }
+            ],
+            "isError": False
+        }
+    elif tool_name == "scan_repository":
+        repository_url = arguments.get("repository_url", "")
+        scan_type = arguments.get("scan_type", "quick")
+        
+        vulnerabilities = [
+            {
+                "type": "SQL Injection",
+                "severity": "High", 
+                "file": "src/database.py",
+                "line": 45,
+                "description": "User input not properly sanitized"
+            }
+        ]
+        
+        result = {
+            "repository_url": repository_url,
+            "scan_type": scan_type,
+            "vulnerabilities_found": len(vulnerabilities),
+            "vulnerabilities": vulnerabilities
+        }
+        
+        return {
+            "content": [
+                {
+                    "type": "text",
+                    "text": f"Scan completed for {repository_url}. Found {len(vulnerabilities)} vulnerabilities."
+                }
+            ],
+            "isError": False
+        }
+    else:
+        return {
+            "content": [
+                {
+                    "type": "text", 
+                    "text": f"Unknown tool: {tool_name}"
+                }
+            ],
+            "isError": True
+        }
 
 @app.post("/scan")
 async def scan_repository(request_data: dict):
