@@ -6,9 +6,11 @@ This is a simplified version to ensure compatibility with Vercel serverless func
 from fastapi import FastAPI, HTTPException, Depends, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, HTMLResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 import logging
+import os
 
 # Configure logging for Vercel
 logging.basicConfig(level=logging.INFO)
@@ -20,6 +22,10 @@ app = FastAPI(
     description="MCP Server for Puch AI Integration",
     version="1.0.0"
 )
+
+# Mount static files
+if os.path.exists("static"):
+    app.mount("/static", StaticFiles(directory="static"), name="static")
 
 # CORS middleware
 app.add_middleware(
@@ -57,18 +63,28 @@ class HealthResponse(BaseModel):
     server: str = "VulnGPT MCP Server"
 
 # Routes
-@app.get("/")
+@app.get("/", response_class=HTMLResponse)
 async def root():
-    """Root endpoint"""
-    return {
-        "message": "VulnGPT MCP Server is running",
-        "version": "1.0.0",
-        "status": "active",
-        "endpoints": {
-            "validate": "/validate",
-            "health": "/health"
+    """Serve the frontend HTML"""
+    try:
+        with open("static/index.html", "r", encoding="utf-8") as f:
+            return HTMLResponse(content=f.read(), status_code=200)
+    except FileNotFoundError:
+        # Fallback API response if frontend not found
+        return {
+            "message": "VulnGPT MCP Server is running",
+            "version": "1.0.0",
+            "status": "active",
+            "endpoints": {
+                "validate": "/validate",
+                "health": "/health"
+            }
         }
-    }
+
+@app.get("/app")
+async def app_page():
+    """Alternative route to serve the frontend"""
+    return await root()
 
 @app.get("/health", response_model=HealthResponse)
 async def health_check():
@@ -143,6 +159,56 @@ async def mcp_initialize():
             "version": "1.0.0"
         }
     }
+
+@app.post("/scan")
+async def scan_repository(request_data: dict):
+    """
+    Demo repository scanning endpoint
+    This is a demonstration - in production, this would perform actual security scanning
+    """
+    try:
+        repository_url = request_data.get("repository_url", "")
+        scan_type = request_data.get("scan_type", "quick")
+        
+        if not repository_url:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Repository URL is required"
+            )
+        
+        # Demo response - in production, this would be real vulnerability data
+        vulnerabilities = [
+            {
+                "type": "SQL Injection",
+                "severity": "High",
+                "file": "src/database.py",
+                "line": 45,
+                "description": "User input not properly sanitized before database query"
+            },
+            {
+                "type": "Cross-Site Scripting",
+                "severity": "Medium", 
+                "file": "templates/user_profile.html",
+                "line": 23,
+                "description": "User data rendered without escaping"
+            }
+        ]
+        
+        return {
+            "success": True,
+            "repository_url": repository_url,
+            "scan_type": scan_type,
+            "vulnerabilities_found": len(vulnerabilities),
+            "vulnerabilities": vulnerabilities,
+            "message": "Security scan completed successfully"
+        }
+        
+    except Exception as e:
+        logger.error(f"Scan error: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Error during repository scan"
+        )
 
 # Global exception handler
 @app.exception_handler(Exception)

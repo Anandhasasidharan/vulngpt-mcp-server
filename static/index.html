@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VulnGPT - AI-Powered Vulnerability Scanner</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: white;
+        }
+
+        .header {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            padding: 20px 0;
+            text-align: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            background: linear-gradient(45deg, #ff6b6b, #4ecdc4);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .header p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            margin-bottom: 50px;
+        }
+
+        .feature-card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            transition: all 0.3s ease;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+        }
+
+        .feature-icon {
+            font-size: 3rem;
+            margin-bottom: 20px;
+            display: block;
+        }
+
+        .feature-card h3 {
+            font-size: 1.5rem;
+            margin-bottom: 15px;
+            color: #4ecdc4;
+        }
+
+        .demo-section {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 40px;
+            margin-bottom: 30px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .demo-section h2 {
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2rem;
+            color: #4ecdc4;
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+        }
+
+        .input-group input, .input-group textarea {
+            width: 100%;
+            padding: 15px;
+            border: none;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            font-size: 16px;
+            backdrop-filter: blur(5px);
+        }
+
+        .input-group input::placeholder, .input-group textarea::placeholder {
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .btn {
+            background: linear-gradient(45deg, #ff6b6b, #4ecdc4);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 50px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline-block;
+            text-decoration: none;
+            margin: 10px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(5px);
+        }
+
+        .result-section {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 20px;
+            margin-top: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .spinner {
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-top: 3px solid #4ecdc4;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .connection-info {
+            background: rgba(0, 255, 127, 0.1);
+            border: 1px solid rgba(0, 255, 127, 0.3);
+            border-radius: 15px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+
+        .connection-code {
+            background: rgba(0, 0, 0, 0.3);
+            color: #00ff7f;
+            padding: 10px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            margin: 10px 0;
+            word-break: break-all;
+        }
+
+        .tabs {
+            display: flex;
+            margin-bottom: 20px;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 5px;
+        }
+
+        .tab {
+            flex: 1;
+            padding: 15px;
+            text-align: center;
+            cursor: pointer;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+
+        .tab.active {
+            background: rgba(255, 255, 255, 0.2);
+            color: #4ecdc4;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .footer {
+            text-align: center;
+            padding: 40px 20px;
+            opacity: 0.8;
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .header p {
+                font-size: 1rem;
+            }
+            
+            .features-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .tabs {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🛡️ VulnGPT</h1>
+        <p>AI-Powered Vulnerability Scanner for Developers</p>
+    </div>
+
+    <div class="container">
+        <!-- Features Section -->
+        <div class="features-grid">
+            <div class="feature-card">
+                <span class="feature-icon">🔍</span>
+                <h3>Smart Scanning</h3>
+                <p>Advanced AI algorithms analyze your code for security vulnerabilities, providing comprehensive coverage beyond traditional tools.</p>
+            </div>
+            <div class="feature-card">
+                <span class="feature-icon">🧠</span>
+                <h3>AI Explanations</h3>
+                <p>Get human-readable explanations of complex security issues, making cybersecurity accessible to every developer.</p>
+            </div>
+            <div class="feature-card">
+                <span class="feature-icon">⚡</span>
+                <h3>Instant Fixes</h3>
+                <p>Receive automated fix suggestions powered by Google Gemini AI, reducing vulnerability remediation time.</p>
+            </div>
+        </div>
+
+        <!-- Demo Section -->
+        <div class="demo-section">
+            <h2>🚀 Try VulnGPT Live</h2>
+            
+            <div class="tabs">
+                <div class="tab active" onclick="showTab('validate')">🔐 Validate Token</div>
+                <div class="tab" onclick="showTab('connect')">🔗 Connect to Puch AI</div>
+                <div class="tab" onclick="showTab('scan')">🔍 Repository Scan</div>
+            </div>
+
+            <!-- Token Validation Tab -->
+            <div class="tab-content active" id="validate-tab">
+                <div class="input-group">
+                    <label>Bearer Token:</label>
+                    <input type="text" id="token-input" placeholder="Enter your bearer token (e.g., puch_ai_token_123)" value="puch_ai_token_123">
+                </div>
+                <button class="btn" onclick="validateToken()">🔍 Validate Token</button>
+                <div id="validate-result" class="result-section" style="display: none;"></div>
+            </div>
+
+            <!-- Puch AI Connection Tab -->
+            <div class="tab-content" id="connect-tab">
+                <div class="connection-info">
+                    <h3>🔗 Connect VulnGPT to Puch AI</h3>
+                    <p>Use this command in Puch AI to connect to our MCP server:</p>
+                    <div class="connection-code">/mcp connect https://vulngpt-mcp-server.vercel.app puch_ai_token_123</div>
+                    <p>Your phone number will be validated: <strong>917305041960</strong></p>
+                </div>
+                <button class="btn" onclick="copyConnectionCommand()">📋 Copy Connection Command</button>
+                <div id="copy-result" style="margin-top: 10px; opacity: 0; transition: opacity 0.3s;"></div>
+            </div>
+
+            <!-- Repository Scan Tab -->
+            <div class="tab-content" id="scan-tab">
+                <div class="input-group">
+                    <label>Repository URL:</label>
+                    <input type="text" id="repo-input" placeholder="https://github.com/username/repository">
+                </div>
+                <div class="input-group">
+                    <label>Scan Type:</label>
+                    <select id="scan-type" style="width: 100%; padding: 15px; border: none; border-radius: 10px; background: rgba(255, 255, 255, 0.2); color: white; font-size: 16px;">
+                        <option value="quick">Quick Scan</option>
+                        <option value="full">Full Security Audit</option>
+                    </select>
+                </div>
+                <button class="btn" onclick="scanRepository()">🔍 Start Security Scan</button>
+                <div class="loading" id="scan-loading">
+                    <div class="spinner"></div>
+                    <p>Analyzing repository for vulnerabilities...</p>
+                </div>
+                <div id="scan-result" class="result-section" style="display: none;"></div>
+            </div>
+        </div>
+
+        <!-- Hackathon Section -->
+        <div class="demo-section">
+            <h2>🏆 Puch AI Hackathon</h2>
+            <p style="text-align: center; margin-bottom: 20px;">
+                This VulnGPT MCP server is participating in the Puch AI Hackathon! 
+                Connect it to your Puch AI account and help us win by using our security tools.
+            </p>
+            <div style="text-align: center;">
+                <button class="btn" onclick="submitToHackathon()">🎯 Submit to Leaderboard</button>
+                <button class="btn btn-secondary" onclick="shareOnSocial()">📱 Share #BuildWithPuch</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="footer">
+        <p>Made with ❤️ for the Puch AI Hackathon | VulnGPT - Making Security Accessible</p>
+        <p>Server Status: <span id="server-status">🔄 Checking...</span></p>
+    </div>
+
+    <script>
+        // Server URL
+        const SERVER_URL = 'https://vulngpt-mcp-server.vercel.app';
+
+        // Check server status on load
+        window.addEventListener('load', checkServerStatus);
+
+        function showTab(tabName) {
+            // Hide all tabs
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+
+            // Show selected tab
+            document.getElementById(tabName + '-tab').classList.add('active');
+            event.target.classList.add('active');
+        }
+
+        async function checkServerStatus() {
+            try {
+                const response = await fetch(`${SERVER_URL}/health`);
+                const data = await response.json();
+                if (data.status === 'healthy') {
+                    document.getElementById('server-status').innerHTML = '✅ Online';
+                } else {
+                    document.getElementById('server-status').innerHTML = '⚠️ Issues';
+                }
+            } catch (error) {
+                document.getElementById('server-status').innerHTML = '❌ Offline';
+            }
+        }
+
+        async function validateToken() {
+            const token = document.getElementById('token-input').value.trim();
+            const resultDiv = document.getElementById('validate-result');
+            
+            if (!token) {
+                resultDiv.style.display = 'block';
+                resultDiv.innerHTML = '<p style="color: #ff6b6b;">⚠️ Please enter a bearer token</p>';
+                return;
+            }
+
+            resultDiv.style.display = 'block';
+            resultDiv.innerHTML = '<div class="loading" style="display: block;"><div class="spinner"></div><p>Validating token...</p></div>';
+
+            try {
+                const response = await fetch(`${SERVER_URL}/validate`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const data = await response.json();
+                
+                if (response.ok) {
+                    resultDiv.innerHTML = `
+                        <div style="color: #00ff7f;">
+                            <h4>✅ Token Validated Successfully!</h4>
+                            <p><strong>Phone Number:</strong> ${data.phone_number}</p>
+                            <p><strong>Message:</strong> ${data.message}</p>
+                        </div>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <div style="color: #ff6b6b;">
+                            <h4>❌ Validation Failed</h4>
+                            <p><strong>Error:</strong> ${data.error}</p>
+                            <p><strong>Message:</strong> ${data.message}</p>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div style="color: #ff6b6b;">
+                        <h4>❌ Connection Error</h4>
+                        <p>Failed to connect to server: ${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+
+        function copyConnectionCommand() {
+            const command = '/mcp connect https://vulngpt-mcp-server.vercel.app puch_ai_token_123';
+            navigator.clipboard.writeText(command).then(() => {
+                const resultDiv = document.getElementById('copy-result');
+                resultDiv.innerHTML = '<span style="color: #00ff7f;">✅ Connection command copied to clipboard!</span>';
+                resultDiv.style.opacity = '1';
+                setTimeout(() => {
+                    resultDiv.style.opacity = '0';
+                }, 3000);
+            });
+        }
+
+        async function scanRepository() {
+            const repoUrl = document.getElementById('repo-input').value.trim();
+            const scanType = document.getElementById('scan-type').value;
+            const loadingDiv = document.getElementById('scan-loading');
+            const resultDiv = document.getElementById('scan-result');
+
+            if (!repoUrl) {
+                resultDiv.style.display = 'block';
+                resultDiv.innerHTML = '<p style="color: #ff6b6b;">⚠️ Please enter a repository URL</p>';
+                return;
+            }
+
+            loadingDiv.style.display = 'block';
+            resultDiv.style.display = 'none';
+
+            // Simulate scan (since this is a demo)
+            setTimeout(() => {
+                loadingDiv.style.display = 'none';
+                resultDiv.style.display = 'block';
+                
+                const vulnerabilities = [
+                    'SQL Injection in user input handler',
+                    'Cross-Site Scripting (XSS) vulnerability',
+                    'Insecure direct object references',
+                    'Missing authentication checks'
+                ];
+
+                const randomVulns = vulnerabilities.slice(0, Math.floor(Math.random() * 3) + 1);
+                
+                resultDiv.innerHTML = `
+                    <h4>🔍 Security Scan Results</h4>
+                    <p><strong>Repository:</strong> ${repoUrl}</p>
+                    <p><strong>Scan Type:</strong> ${scanType.charAt(0).toUpperCase() + scanType.slice(1)}</p>
+                    <p><strong>Vulnerabilities Found:</strong> ${randomVulns.length}</p>
+                    <ul>
+                        ${randomVulns.map(vuln => `<li style="color: #ff6b6b;">⚠️ ${vuln}</li>`).join('')}
+                    </ul>
+                    <p style="margin-top: 15px; color: #4ecdc4;">
+                        💡 Connect to Puch AI for detailed AI-powered explanations and automated fixes!
+                    </p>
+                `;
+            }, 3000);
+        }
+
+        function submitToHackathon() {
+            alert('🏆 Great! To submit VulnGPT to the Puch AI Hackathon leaderboard, use this command in Puch AI:\n\n/hackathon submission add vulngpt-mcp-server https://github.com/Anandhasasidhiran/vulngpt-mcp-server');
+        }
+
+        function shareOnSocial() {
+            const text = '🛡️ Just tried VulnGPT - an amazing AI-powered vulnerability scanner! Making cybersecurity accessible to all developers. #BuildWithPuch #PuchAI #Cybersecurity';
+            const url = 'https://vulngpt-mcp-server.vercel.app';
+            
+            if (navigator.share) {
+                navigator.share({
+                    title: 'VulnGPT - AI Security Scanner',
+                    text: text,
+                    url: url
+                });
+            } else {
+                // Fallback for desktop
+                const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`;
+                window.open(twitterUrl, '_blank');
+            }
+        }
+    </script>
+</body>
+</html>
