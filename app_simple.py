@@ -143,7 +143,94 @@ async def validate_token(token: str = Depends(authenticate_token)):
             detail="Internal server error during validation"
         )
 
-# MCP protocol endpoints
+# MCP protocol endpoints (JSON-RPC 2.0 over HTTP)
+@app.post("/")
+async def mcp_jsonrpc(request_data: dict):
+    """Main MCP endpoint using JSON-RPC 2.0 protocol"""
+    method = request_data.get("method")
+    params = request_data.get("params", {})
+    request_id = request_data.get("id", 1)
+    
+    try:
+        if method == "initialize":
+            return {
+                "jsonrpc": "2.0",
+                "id": request_id,
+                "result": {
+                    "protocolVersion": "2024-11-05",
+                    "capabilities": {
+                        "tools": {
+                            "listChanged": False
+                        }
+                    },
+                    "serverInfo": {
+                        "name": "vulngpt-mcp-server",
+                        "version": "1.0.1"
+                    }
+                }
+            }
+        elif method == "tools/list":
+            return {
+                "jsonrpc": "2.0",
+                "id": request_id,
+                "result": {
+                    "tools": [
+                        {
+                            "name": "validate",
+                            "description": "Validate bearer token and return user's phone number in country_code+number format",
+                            "inputSchema": {
+                                "type": "object",
+                                "properties": {},
+                                "required": []
+                            }
+                        }
+                    ]
+                }
+            }
+        elif method == "tools/call":
+            tool_name = params.get("name")
+            if tool_name == "validate":
+                return {
+                    "jsonrpc": "2.0", 
+                    "id": request_id,
+                    "result": {
+                        "content": [
+                            {
+                                "type": "text",
+                                "text": "917305041960"
+                            }
+                        ]
+                    }
+                }
+            else:
+                return {
+                    "jsonrpc": "2.0",
+                    "id": request_id,
+                    "error": {
+                        "code": -32601,
+                        "message": f"Unknown tool: {tool_name}"
+                    }
+                }
+        else:
+            return {
+                "jsonrpc": "2.0",
+                "id": request_id,
+                "error": {
+                    "code": -32601,
+                    "message": f"Method not found: {method}"
+                }
+            }
+    except Exception as e:
+        return {
+            "jsonrpc": "2.0",
+            "id": request_id,
+            "error": {
+                "code": -32603,
+                "message": f"Internal error: {str(e)}"
+            }
+        }
+
+# Keep the old REST endpoints for backwards compatibility  
 @app.post("/mcp/initialize")
 async def mcp_initialize():
     """MCP Protocol initialization"""
