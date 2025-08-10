@@ -280,6 +280,32 @@ async def mcp_jsonrpc(request: Request):
             }
         )
 
+# Additional MCP endpoints that might be expected
+@app.get("/.well-known/mcp")
+async def mcp_discovery():
+    """MCP server discovery endpoint"""
+    return {
+        "name": "vulngpt-mcp-server",
+        "version": "1.0.1", 
+        "description": "VulnGPT MCP Server for Vulnerability Scanning",
+        "protocol": "mcp",
+        "protocolVersion": "2024-11-05"
+    }
+
+@app.post("/sse")
+async def mcp_sse(request: Request):
+    """MCP Server-Sent Events endpoint"""
+    return JSONResponse({
+        "error": "SSE not supported, use JSON-RPC over HTTP POST to /"
+    }, status_code=501)
+
+@app.get("/ws") 
+async def mcp_websocket():
+    """MCP WebSocket endpoint info"""
+    return JSONResponse({
+        "error": "WebSocket not supported, use JSON-RPC over HTTP POST to /"
+    }, status_code=501)
+
 # Keep the old REST endpoints for backwards compatibility  
 @app.post("/mcp/initialize")
 async def mcp_initialize():
