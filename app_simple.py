@@ -3,7 +3,7 @@ Minimal FastAPI app for Vercel deployment
 This is a simplified version to ensure compatibility with Vercel serverless functions
 """
 
-from fastapi import FastAPI, HTTPException, Depends, status
+from fastapi import FastAPI, HTTPException, Depends, status, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, HTMLResponse
@@ -145,11 +145,17 @@ async def validate_token(token: str = Depends(authenticate_token)):
 
 # MCP protocol endpoints (JSON-RPC 2.0 over HTTP)
 @app.post("/")
-async def mcp_jsonrpc(request_data: dict):
+async def mcp_jsonrpc(request_data: dict, request: Request):
     """Main MCP endpoint using JSON-RPC 2.0 protocol"""
     method = request_data.get("method")
     params = request_data.get("params", {})
     request_id = request_data.get("id", 1)
+    
+    # Get authorization header for authentication
+    auth_header = request.headers.get("authorization", "")
+    token = None
+    if auth_header.startswith("Bearer "):
+        token = auth_header[7:]
     
     try:
         if method == "initialize":
@@ -190,6 +196,8 @@ async def mcp_jsonrpc(request_data: dict):
         elif method == "tools/call":
             tool_name = params.get("name")
             if tool_name == "validate":
+                # Get the phone number for the authenticated user
+                phone_number = USER_DATABASE.get(token) if token and token in USER_DATABASE else "917305041960"
                 return {
                     "jsonrpc": "2.0", 
                     "id": request_id,
@@ -197,7 +205,7 @@ async def mcp_jsonrpc(request_data: dict):
                         "content": [
                             {
                                 "type": "text",
-                                "text": "917305041960"
+                                "text": phone_number
                             }
                         ]
                     }
@@ -221,6 +229,7 @@ async def mcp_jsonrpc(request_data: dict):
                 }
             }
     except Exception as e:
+        logger.error(f"JSON-RPC error: {str(e)}")
         return {
             "jsonrpc": "2.0",
             "id": request_id,
