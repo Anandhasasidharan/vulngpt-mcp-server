@@ -11,6 +11,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 import logging
 import os
+import json
 
 # Configure logging for Vercel
 logging.basicConfig(level=logging.INFO)
@@ -143,50 +144,44 @@ async def validate_token(token: str = Depends(authenticate_token)):
             detail="Internal server error during validation"
         )
 
-# MCP protocol endpoints (JSON-RPC 2.0 over HTTP)
+# MCP protocol endpoints (JSON-RPC 2.0 over HTTP) - Strict Implementation
+server_initialized = False
+
 @app.post("/")
 async def mcp_jsonrpc(request: Request):
-    """Main MCP endpoint using JSON-RPC 2.0 protocol"""
+    """Main MCP endpoint using strict JSON-RPC 2.0 protocol per MCP spec"""
+    global server_initialized
+    
     try:
         # Log the raw request for debugging
         body = await request.body()
-        logger.info(f"Received request body: {body}")
+        logger.info(f"Raw request body: {body}")
         logger.info(f"Request headers: {dict(request.headers)}")
         
-        # Parse JSON
+        # Parse JSON-RPC request
         try:
-            request_data = await request.json()
+            request_data = json.loads(body)
             logger.info(f"Parsed JSON: {request_data}")
-        except Exception as json_error:
+        except json.JSONDecodeError as json_error:
             logger.error(f"JSON parsing error: {json_error}")
-            return JSONResponse(
-                status_code=400,
-                content={
-                    "jsonrpc": "2.0",
-                    "id": None,
-                    "error": {
-                        "code": -32700,
-                        "message": "Parse error"
-                    }
-                }
-            )
+            return JSONResponse({
+                "jsonrpc": "2.0",
+                "id": None,
+                "error": {"code": -32700, "message": "Parse error"}
+            }, status_code=400)
         
         method = request_data.get("method")
         params = request_data.get("params", {})
-        request_id = request_data.get("id", 1)
+        request_id = request_data.get("id")
         
-        # Get authorization header for authentication
-        auth_header = request.headers.get("authorization", "")
-        token = None
-        if auth_header.startswith("Bearer "):
-            token = auth_header[7:]
+        logger.info(f"Method: {method}, Params: {params}, ID: {request_id}")
         
-        logger.info(f"Method: {method}, Params: {params}, Token: {token}")
-        
+        # Handle initialize method - MUST be called first
         if method == "initialize":
-            # MCP initialize should accept client info in params
             client_info = params.get("clientInfo", {})
-            logger.info(f"Initialize called with client info: {client_info}")
+            protocol_version = params.get("protocolVersion", "2024-11-05")
+            
+            logger.info(f"Initialize with client: {client_info}, protocol: {protocol_version}")
             
             result = {
                 "jsonrpc": "2.0",
@@ -207,10 +202,31 @@ async def mcp_jsonrpc(request: Request):
                     }
                 }
             }
-            logger.info(f"Returning initialize result: {result}")
+            
+            server_initialized = True
+            logger.info(f"Initialize result: {result}")
             return result
             
-        elif method == "tools/list":
+        # Handle notifications (no ID, no response expected)
+        if request_id is None:
+            if method == "notifications/initialized":
+                logger.info("Client sent initialized notification")
+                return JSONResponse({}, status_code=204)
+            else:
+                logger.info(f"Ignoring notification: {method}")
+                return JSONResponse({}, status_code=204)
+        
+        # All other methods require server to be initialized
+        if not server_initialized and method != "initialize":
+            error_result = {
+                "jsonrpc": "2.0",
+                "id": request_id,
+                "error": {"code": -32002, "message": "Server not initialized"}
+            }
+            logger.error("Server not initialized")
+            return JSONResponse(error_result, status_code=400)
+            
+        if method == "tools/list":
             result = {
                 "jsonrpc": "2.0",
                 "id": request_id,
@@ -228,14 +244,23 @@ async def mcp_jsonrpc(request: Request):
                     ]
                 }
             }
-            logger.info(f"Returning tools/list result: {result}")
+            logger.info(f"Tools list result: {result}")
             return result
             
         elif method == "tools/call":
             tool_name = params.get("name")
+            arguments = params.get("arguments", {})
+            
             if tool_name == "validate":
-                # Get the phone number for the authenticated user
+                # Get authorization header
+                auth_header = request.headers.get("authorization", "")
+                token = None
+                if auth_header.startswith("Bearer "):
+                    token = auth_header[7:]
+                
+                # Get phone number for authenticated user
                 phone_number = USER_DATABASE.get(token) if token and token in USER_DATABASE else "917305041960"
+                
                 result = {
                     "jsonrpc": "2.0", 
                     "id": request_id,
@@ -248,44 +273,33 @@ async def mcp_jsonrpc(request: Request):
                         ]
                     }
                 }
-                logger.info(f"Returning tools/call validate result: {result}")
+                logger.info(f"Validate result: {result}")
                 return result
             else:
                 error_result = {
                     "jsonrpc": "2.0",
                     "id": request_id,
-                    "error": {
-                        "code": -32601,
-                        "message": f"Unknown tool: {tool_name}"
-                    }
+                    "error": {"code": -32601, "message": f"Unknown tool: {tool_name}"}
                 }
-                logger.error(f"Unknown tool requested: {tool_name}")
-                return error_result
+                logger.error(f"Unknown tool: {tool_name}")
+                return JSONResponse(error_result, status_code=400)
+                
         else:
             error_result = {
                 "jsonrpc": "2.0",
                 "id": request_id,
-                "error": {
-                    "code": -32601,
-                    "message": f"Method not found: {method}"
-                }
+                "error": {"code": -32601, "message": f"Method not found: {method}"}
             }
-            logger.error(f"Unknown method requested: {method}")
-            return error_result
+            logger.error(f"Unknown method: {method}")
+            return JSONResponse(error_result, status_code=400)
             
     except Exception as e:
         logger.error(f"JSON-RPC error: {str(e)}")
-        return JSONResponse(
-            status_code=500,
-            content={
-                "jsonrpc": "2.0",
-                "id": None,
-                "error": {
-                    "code": -32603,
-                    "message": f"Internal error: {str(e)}"
-                }
-            }
-        )
+        return JSONResponse({
+            "jsonrpc": "2.0",
+            "id": request_id if 'request_id' in locals() else None,
+            "error": {"code": -32603, "message": f"Internal error: {str(e)}"}
+        }, status_code=500)
 
 # Additional MCP endpoints that might be expected
 @app.get("/.well-known/mcp")
