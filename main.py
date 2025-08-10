@@ -222,24 +222,21 @@ async def general_exception_handler(request, exc):
         }
     )
 
-# Create the FastAPI app instance for Vercel
-app_instance = app
+# Create the FastAPI app instance
+# This app will be imported by vercel_app.py
 
-# Vercel entry point
-def handler(request):
-    return app_instance
-
-if __name__ == "__main__":
-    # For local development
-    print(f"🚀 Starting VulnGPT MCP Server on {HOST}:{PORT}")
-    print(f"📋 API Documentation: http://{HOST}:{PORT}/docs")
-    print(f"🔍 Health Check: http://{HOST}:{PORT}/health")
-    print(f"✅ Validation Endpoint: http://{HOST}:{PORT}/validate")
-    
-    uvicorn.run(
-        "main:app",
-        host=HOST,
-        port=PORT,
-        reload=True,
-        log_level="info"
-    )
+# For local development, uncomment the code below:
+# if __name__ == "__main__":
+#     import uvicorn
+#     print(f"🚀 Starting VulnGPT MCP Server on {HOST}:{PORT}")
+#     print(f"📋 API Documentation: http://{HOST}:{PORT}/docs")
+#     print(f"🔍 Health Check: http://{HOST}:{PORT}/health")  
+#     print(f"✅ Validation Endpoint: http://{HOST}:{PORT}/validate")
+#     
+#     uvicorn.run(
+#         "main:app",
+#         host=HOST,
+#         port=PORT,
+#         reload=True,
+#         log_level="info"
+#     )
