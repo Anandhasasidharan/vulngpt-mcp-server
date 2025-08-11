@@ -300,7 +300,7 @@
                     <h3>🔗 Connect VulnGPT to Puch AI</h3>
                     <p>Use this command in Puch AI to connect to our MCP server:</p>
                     <div class="connection-code">/mcp connect https://vulngpt-mcp-server.vercel.app puch_ai_token_123</div>
-                    <p>Your phone number will be validated: <strong>917305041960</strong></p>
+                    <p>Your authentication will be validated when you connect.</p>
                 </div>
                 <button class="btn" onclick="copyConnectionCommand()">📋 Copy Connection Command</button>
                 <div id="copy-result" style="margin-top: 10px; opacity: 0; transition: opacity 0.3s;"></div>
@@ -410,7 +410,7 @@
                     resultDiv.innerHTML = `
                         <div style="color: #00ff7f;">
                             <h4>✅ Token Validated Successfully!</h4>
-                            <p><strong>Phone Number:</strong> ${data.phone_number}</p>
+                            <p><strong>Status:</strong> Authentication verified</p>
                             <p><strong>Message:</strong> ${data.message}</p>
                         </div>
                     `;
